@@ -8,7 +8,7 @@ from apps.common.models import TimestampedModel
 class Post(TimestampedModel):
     title = models.CharField(max_length=255)
     content = models.TextField()
-    slug = models.SlugField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=255, unique=True, blank=True, null=True)
     author = models.ForeignKey(User, related_name="posts", on_delete=models.CASCADE)
     tags = models.ManyToManyField("Tag", related_name="posts")
     category = models.ForeignKey("Category", related_name="posts", on_delete=models.CASCADE)
