@@ -1,23 +1,35 @@
-from apps.posts.models import Post
-from apps.posts.serializers import PostSerializer
+from apps.common.permissions import IsAdminUserOrReadOnly
+from django.core.cache import cache
 from rest_framework import views, generics
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from .models import Tag, Post, Category
+from .serializers import PostSerializer, TagSerializer, CategorySerializer
 
 
 class PostList(generics.ListCreateAPIView):
-    permission_classes = (IsAdminUser,)
+    permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = PostSerializer
     queryset = Post.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+        cache.clear()
 
 
 class PostDetail(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = (IsAdminUser,)
+    permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = PostSerializer
     queryset = Post.objects.all()
+
+    def perform_update(self, serializer):
+        serializer.save(author=self.request.user)
+        cache.clear()
+
+    def perform_destroy(self, instance):
+        cache.clear()
+        instance.delete()
 
 
 class PostFilter(views.APIView):
@@ -43,6 +55,7 @@ class PostFilter(views.APIView):
 
 
 class SearchPost(views.APIView):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PostSerializer
     queryset = Post.objects.all()
 
@@ -55,3 +68,27 @@ class SearchPost(views.APIView):
         for post in queryset:
             result.append(post.slug)
         return Response(result, status=200)
+
+
+class TagList(generics.ListCreateAPIView):
+    permission_classes = (IsAdminUserOrReadOnly,)
+    serializer_class = TagSerializer
+    queryset = Tag.objects.all()
+
+
+class TagDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAdminUserOrReadOnly,)
+    serializer_class = TagSerializer
+    queryset = Tag.objects.all()
+
+
+class CategoryList(generics.ListCreateAPIView):
+    permission_classes = (IsAdminUserOrReadOnly,)
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
+
+
+class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAdminUserOrReadOnly,)
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
