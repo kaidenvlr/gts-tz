@@ -29,8 +29,11 @@ class PostFilter(views.APIView):
             queryset = Post.objects.filter(tags__id__in=tags).distinct()
         else:
             return Response({"detail": "Please provide tags or category."}, status=400)
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data, status=200)
+
+        result = []
+        for post in queryset:
+            result.append(post.slug)
+        return Response(result, status=200)
 
 
 class SearchPost(views.APIView):
@@ -42,5 +45,7 @@ class SearchPost(views.APIView):
         if not title_container:
             return Response({"title": "This field is required."}, status=400)
         queryset = Post.objects.filter(title__icontains=title_container)
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data, status=200)
+        result = []
+        for post in queryset:
+            result.append(post.slug)
+        return Response(result, status=200)
