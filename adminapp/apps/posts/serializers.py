@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Post
+from .models import Post, Tag
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -9,4 +9,4 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ("id", "title", "content", "author", "category", "tags", "slug", "created_at", "updated_at")
-        depth = 1
+        read_only_fields = ("slug", "created_at", "updated_at")
