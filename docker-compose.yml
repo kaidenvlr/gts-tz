@@ -24,7 +24,7 @@ services:
       - .:/usr/src/app/
       - ./static:/usr/src/app/static/
     ports:
-        - "8001:8001"
+      - "8001:8001"
     depends_on:
       - db
     restart: on-failure
@@ -47,6 +47,36 @@ services:
         "CMD-SHELL", "pg_isready -d $DB_NAME -U $DB_USER"
       ]
 
+  redis:
+    container_name: gts_redis
+    image: redis:latest
+    volumes:
+      - redis_data:/data
+    env_file:
+      - .env
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_USER_PASSWORD=${REDIS_USER_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: >
+      sh -c '
+        mkdir -p /usr/local/etc/redis &&
+        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
+        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
+        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
+        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
+      '
+    healthcheck:
+      test: [
+        "CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"
+      ]
+
 volumes:
   postgres_data:
   static_files:
+  redis_data:
