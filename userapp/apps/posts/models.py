@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 from django.utils.text import slugify
 
 from apps.users.models import User
@@ -26,6 +27,10 @@ class Post(TimestampedModel):
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return reverse('post_detail', args=[str(self.slug)])
+
 
 
 class Tag(TimestampedModel):
