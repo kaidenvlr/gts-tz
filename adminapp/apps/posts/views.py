@@ -1,5 +1,6 @@
 from apps.common.permissions import IsAdminUserOrReadOnly
 from django.core.cache import cache
+from django.urls import reverse
 from rest_framework import views, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -13,22 +14,30 @@ class PostList(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
 
+    # def get_queryset(self):
+    #     data = cache.get('posts')
+    #     if not data:
+    #         data = Post.objects.all()
+    #         cache.set('posts', data)
+    #     return data
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-        cache.clear()
+        # cache.clear()
 
 
 class PostDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = PostSerializer
     queryset = Post.objects.all()
+    lookup_field = 'slug'
 
     def perform_update(self, serializer):
         serializer.save(author=self.request.user)
-        cache.clear()
+        # cache.clear()
 
     def perform_destroy(self, instance):
-        cache.clear()
+        # cache.clear()
         instance.delete()
 
 
@@ -50,11 +59,11 @@ class PostFilter(views.APIView):
             return Response({"detail": "Please provide tags or category."}, status=400)
         result = []
         for post in queryset:
-            result.append(post.slug)
+            result.append(post.get_absolute_url())
         return Response(result, status=200)
 
 
-class SearchPost(views.APIView):
+class PostSearch(views.APIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = PostSerializer
     queryset = Post.objects.all()
@@ -66,7 +75,7 @@ class SearchPost(views.APIView):
         queryset = Post.objects.filter(title__icontains=title_container)
         result = []
         for post in queryset:
-            result.append(post.slug)
+            result.append(post.get_absolute_url())
         return Response(result, status=200)
 
 
