@@ -1,4 +1,5 @@
 from apps.common.permissions import IsAdminUserOrReadOnly
+from django.core.cache import cache
 from rest_framework import views, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,16 +13,16 @@ class PostList(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
 
-    # def get_queryset(self):
-    #     data = cache.get('posts')
-    #     if not data:
-    #         data = Post.objects.all()
-    #         cache.set('posts', data)
-    #     return data
+    def get_queryset(self):
+        data = cache.get('posts')
+        if not data:
+            data = Post.objects.all()
+            cache.set('posts', data)
+        return data
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-        # cache.clear()
+        cache.clear()
 
 
 class PostDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -32,10 +33,10 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         serializer.save(author=self.request.user)
-        # cache.clear()
+        cache.clear()
 
     def perform_destroy(self, instance):
-        # cache.clear()
+        cache.clear()
         instance.delete()
 
 
@@ -83,11 +84,23 @@ class TagList(generics.ListCreateAPIView):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
 
+    def perform_create(self, serializer):
+        cache.clear()
+        serializer.save()
+
 
 class TagDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
+
+    def perform_update(self, serializer):
+        cache.clear()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        cache.clear()
+        instance.delete()
 
 
 class CategoryList(generics.ListCreateAPIView):
@@ -95,8 +108,20 @@ class CategoryList(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
 
+    def perform_create(self, serializer):
+        cache.clear()
+        serializer.save()
+
 
 class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
+
+    def perform_update(self, serializer):
+        cache.clear()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        cache.clear()
+        instance.delete()
