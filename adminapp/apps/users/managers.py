@@ -1,4 +1,5 @@
 from django.contrib.auth.models import UserManager as DjangoUserManager
+from django.core.cache import cache
 
 
 class UserManager(DjangoUserManager):
@@ -9,6 +10,7 @@ class UserManager(DjangoUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+        cache.clear()
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
@@ -20,4 +22,5 @@ class UserManager(DjangoUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
+        cache.clear()
         return self.create_user(email, password, **extra_fields)
