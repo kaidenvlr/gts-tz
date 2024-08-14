@@ -11,13 +11,12 @@ from .serializers import PostSerializer, TagSerializer, CategorySerializer
 class PostList(generics.ListCreateAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = PostSerializer
-    queryset = Post.objects.all()
 
     def get_queryset(self):
-        data = cache.get('posts')
+        data = cache.get('adminposts')
         if not data:
             data = Post.objects.all()
-            cache.set('posts', data)
+            cache.set('adminposts', data)
         return data
 
     def perform_create(self, serializer):
@@ -28,8 +27,14 @@ class PostList(generics.ListCreateAPIView):
 class PostDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = PostSerializer
-    queryset = Post.objects.all()
     lookup_field = 'slug'
+
+    def get_queryset(self):
+        data = cache.get(f'adminposts-{self.request.query_params.get("slug")}')
+        if not data:
+            data = Post.objects.get(slug=self.request.query_params.get('slug'))
+            cache.set(f'adminposts-{self.request.query_params.get("slug")}', data)
+        return data
 
     def perform_update(self, serializer):
         serializer.save(author=self.request.user)
@@ -43,20 +48,26 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
 class PostFilter(views.APIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = PostSerializer
-    queryset = Post.objects.all()
     filter_fields = ['tags', 'category']
 
+    def get_queryset(self):
+        data = cache.get(f'adminposts-filter-tag-{"_".join(self.request.query_params.get("tags", "no-tag").split(","))}-cat-{self.request.query_params.get("category", "no-cat")}')
+        if not data:
+            tags = self.request.query_params.get('tags', "").split(',')
+            category = self.request.query_params.get('category', None)
+            if category and tags != ['']:
+                data = Post.objects.filter(category_id=category, tags__id__in=tags).distinct()
+            elif category:
+                data = Post.objects.filter(category_id=category)
+            elif tags != ['']:
+                data = Post.objects.filter(tags__id__in=tags).distinct()
+            else:
+                data = Post.objects.all()
+            cache.set(f'adminposts-filter-tag-{"_".join(self.request.query_params.get("tags", "no-tag").split(","))}-cat-{self.request.query_params.get("category", "no-cat")}', data)
+        return data
+
     def get(self, request, *args, **kwargs):
-        tags = request.query_params.get('tags', "").split(',')
-        category = request.query_params.get('category', None)
-        if category and tags != ['']:
-            queryset = Post.objects.filter(category_id=category, tags__id__in=tags).distinct()
-        elif category:
-            queryset = Post.objects.filter(category_id=category)
-        elif tags != ['']:
-            queryset = Post.objects.filter(tags__id__in=tags).distinct()
-        else:
-            return Response({"detail": "Please provide tags or category."}, status=400)
+        queryset = self.get_queryset()
         result = []
         for post in queryset:
             result.append(post.get_absolute_url())
@@ -66,13 +77,17 @@ class PostFilter(views.APIView):
 class PostSearch(views.APIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = PostSerializer
-    queryset = Post.objects.all()
+
+    def get_queryset(self):
+        data = cache.get(f'adminposts-search-{self.request.query_params.get("title", "no-title")}')
+        if not data:
+            title_container = self.request.query_params.get('title').lower()
+            data = Post.objects.filter(title__icontains=title_container)
+            cache.set(f'adminposts-search-{self.request.query_params.get("title", "no-title")}', data)
+        return data
 
     def get(self, request, *args, **kwargs):
-        title_container = request.query_params.get('title').lower()
-        if not title_container:
-            return Response({"title": "This field is required."}, status=400)
-        queryset = Post.objects.filter(title__icontains=title_container)
+        queryset = self.get_queryset()
         result = []
         for post in queryset:
             result.append(post.get_absolute_url())
@@ -82,7 +97,13 @@ class PostSearch(views.APIView):
 class TagList(generics.ListCreateAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = TagSerializer
-    queryset = Tag.objects.all()
+
+    def get_queryset(self):
+        data = cache.get('admintags')
+        if not data:
+            data = Tag.objects.all()
+            cache.set('admintags', data)
+        return data
 
     def perform_create(self, serializer):
         cache.clear()
@@ -92,7 +113,13 @@ class TagList(generics.ListCreateAPIView):
 class TagDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = TagSerializer
-    queryset = Tag.objects.all()
+
+    def get_queryset(self, *args, **kwargs):
+        data = cache.get(f'admintags-{self.request.query_params.get("pk")}')
+        if not data:
+            data = Tag.objects.get(pk=self.request.query_params.get('pk'))
+            cache.set(f'admintags-{self.request.query_params.get("pk")}', data)
+        return
 
     def perform_update(self, serializer):
         cache.clear()
@@ -106,7 +133,13 @@ class TagDetail(generics.RetrieveUpdateDestroyAPIView):
 class CategoryList(generics.ListCreateAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = CategorySerializer
-    queryset = Category.objects.all()
+
+    def get_queryset(self):
+        data = cache.get('admincategories')
+        if not data:
+            data = Category.objects.all()
+            cache.set('admincategories', data)
+        return data
 
     def perform_create(self, serializer):
         cache.clear()
@@ -116,7 +149,13 @@ class CategoryList(generics.ListCreateAPIView):
 class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminUserOrReadOnly,)
     serializer_class = CategorySerializer
-    queryset = Category.objects.all()
+
+    def get_queryset(self):
+        data = cache.get(f'admincategories-{self.request.query_params.get("pk")}')
+        if not data:
+            data = Category.objects.get(pk=self.request.query_params.get('pk'))
+            cache.set(f'admincategories-{self.request.query_params.get("pk")}', data)
+        return data
 
     def perform_update(self, serializer):
         cache.clear()
