@@ -1,6 +1,4 @@
 from apps.common.permissions import IsAdminUserOrReadOnly
-from django.core.cache import cache
-from django.urls import reverse
 from rest_framework import views, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -42,6 +40,7 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class PostFilter(views.APIView):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     filter_fields = ['tags', 'category']
